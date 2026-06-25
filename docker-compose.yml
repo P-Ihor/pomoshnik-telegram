@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  pomoshnik:
+    image: openclaw/openclaw:latest
+    container_name: pomoshnik_openclaw
+    restart: always
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./openclaw_data:/app/data
+      - ./openclaw/SOUL.md:/app/SOUL.md
+      - ./openclaw/.mcp.json:/app/.mcp.json
+    environment:
+      - OPENCLAW_GATEWAY_TOKEN=${TELEGRAM_BOT_TOKEN} # For simplicity, using TG token or a custom one
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    deploy:
+      resources:
+        limits:
+          memory: 600M
+          cpus: '0.6'
+    depends_on:
+      - mcp-backend
+
+  mcp-backend:
+    build: 
+      context: ./python-mcp
+      dockerfile: Dockerfile
+    container_name: pomoshnik_mcp_backend
+    restart: always
+    env_file:
+      - .env
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+          cpus: '0.4'
+
+volumes:
+  openclaw_data:

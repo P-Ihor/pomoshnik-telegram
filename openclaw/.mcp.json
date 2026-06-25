@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pomoshnik-tools": {
+      "command": "python",
+      "args": ["/app/server.py"],
+      "env": {}
+    }
+  }
+}
