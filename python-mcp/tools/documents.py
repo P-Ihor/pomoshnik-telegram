@@ -36,18 +36,36 @@ def analyze_document(doc_base64: str, filename: str, mime_type: str) -> str:
         # Truncate if too long (rough limit for LLM context)
         text_content = text_content[:50000]
 
-        if not openrouter_client:
-            return f"Текст извлечен, но AI-анализ недоступен (нет API ключа).\n\nНачало текста:\n{text_content[:500]}..."
+        system_prompt = "Ты аналитик документов. Проанализируй текст и выдай подробное резюме на русском языке."
+        user_prompt = f"Файл: {filename}\nТекст:\n{text_content}"
 
-        response = openrouter_client.chat.completions.create(
-            model=settings.MODEL_CHEAP,
-            messages=[
-                {"role": "system", "content": "Ты аналитик документов. Проанализируй текст и выдай подробное резюме на русском языке."},
-                {"role": "user", "content": f"Файл: {filename}\nТекст:\n{text_content}"}
-            ],
-            temperature=0.3
-        )
-        return response.choices[0].message.content
+        # Try OpenRouter first
+        if openrouter_client:
+            try:
+                response = openrouter_client.chat.completions.create(
+                    model=settings.MODEL_CHEAP,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.3
+                )
+                return response.choices[0].message.content
+            except Exception as or_err:
+                logger.warning(f"OpenRouter doc analysis failed: {or_err}, trying Gemini...")
+
+        # Fallback to Gemini
+        if settings.GOOGLE_API_KEY:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=settings.GOOGLE_API_KEY)
+                model = genai.GenerativeModel('gemini-2.0-flash-001')
+                resp = model.generate_content(f"{system_prompt}\n\n{user_prompt}")
+                return f"⚠️ (Резервная модель)\n{resp.text}"
+            except Exception as g_err:
+                logger.error(f"Gemini doc fallback also failed: {g_err}")
+
+        return f"Текст извлечен, но AI-анализ недоступен.\n\nНачало текста:\n{text_content[:500]}..."
 
     except Exception as e:
         logger.error(f"Document analysis failed: {e}")

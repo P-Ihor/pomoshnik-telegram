@@ -9,13 +9,48 @@ openrouter_client = OpenAI(
     api_key=settings.OPENROUTER_API_KEY
 ) if settings.OPENROUTER_API_KEY else None
 
+# Gemini fallback (бесплатный)
+_gemini_model = None
+
+def _get_gemini_fallback():
+    global _gemini_model
+    if _gemini_model is None and settings.GOOGLE_API_KEY:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=settings.GOOGLE_API_KEY)
+            _gemini_model = genai.GenerativeModel('gemini-2.0-flash-001')
+        except Exception as e:
+            logger.error(f"Gemini fallback init failed: {e}")
+    return _gemini_model
+
+
+def _try_gemini_fallback(text: str) -> str:
+    """Попытка ответить через бесплатный Gemini, если OpenRouter недоступен."""
+    fallback = _get_gemini_fallback()
+    if fallback:
+        try:
+            resp = fallback.generate_content(
+                f"Ты — Помощник, личный AI-ассистент. Отвечай на русском языке.\n\n{text}"
+            )
+            return f"⚠️ (Резервная модель Gemini)\n{resp.text}"
+        except Exception as e2:
+            logger.error(f"Gemini fallback also failed: {e2}")
+            return f"❌ Обе модели недоступны. OpenRouter и Gemini выдали ошибки."
+    return None
+
+
 def smart_analyze(text: str, complexity: str = 'auto') -> str:
     """Routes to cheap or smart model based on complexity. 
     If 'auto': uses cheap model to classify, then routes. 
-    Complexities: 'simple' (Gemini Flash), 'complex' (Claude Sonnet), 'auto' (detect)."""
+    Complexities: 'simple' (Gemini Flash), 'complex' (Claude Sonnet), 'auto' (detect).
+    Falls back to free Gemini API if OpenRouter fails."""
     
     if not openrouter_client:
-        return "Ошибка: Отсутствует OPENROUTER_API_KEY."
+        # Нет OpenRouter — сразу пробуем Gemini
+        result = _try_gemini_fallback(text)
+        if result:
+            return result
+        return "Ошибка: Отсутствуют API ключи (OPENROUTER_API_KEY и GOOGLE_API_KEY)."
         
     try:
         model_to_use = settings.MODEL_CHEAP
@@ -49,5 +84,8 @@ def smart_analyze(text: str, complexity: str = 'auto') -> str:
         return response.choices[0].message.content
         
     except Exception as e:
-        logger.error(f"Smart routing failed: {e}")
+        logger.warning(f"OpenRouter failed ({e}), trying Gemini fallback...")
+        result = _try_gemini_fallback(text)
+        if result:
+            return result
         return f"Ошибка при маршрутизации запроса: {e}"

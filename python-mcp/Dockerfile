@@ -10,6 +10,11 @@ WORKDIR /app
 
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt .
+
+# Install CPU-only PyTorch first (saves ~800MB vs CUDA version)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Then install the rest
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download sentence-transformers model during build to save time on startup
