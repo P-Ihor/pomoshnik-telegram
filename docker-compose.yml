@@ -4,7 +4,7 @@ services:
   pomoshnik:
     image: openclaw/openclaw:latest
     container_name: pomoshnik_openclaw
-    command: ["--allow-unconfigured"]
+    command: ["node", "openclaw.mjs", "gateway", "--allow-unconfigured"]
     restart: always
     ports:
       - "3001:3001"
