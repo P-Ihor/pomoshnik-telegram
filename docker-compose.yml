@@ -4,6 +4,7 @@ services:
   pomoshnik:
     image: openclaw/openclaw:latest
     container_name: pomoshnik_openclaw
+    command: ["--allow-unconfigured"]
     restart: always
     ports:
       - "3001:3001"
@@ -15,6 +16,7 @@ services:
       - OPENCLAW_GATEWAY_TOKEN=${TELEGRAM_BOT_TOKEN} # For simplicity, using TG token or a custom one
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - GATEWAY_MODE=local
     deploy:
       resources:
         limits:
