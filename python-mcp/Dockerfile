@@ -4,6 +4,7 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y \
     libzbar0 \
     ffmpeg \
+    socat \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -23,5 +24,7 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 # Copy the rest of the code
 COPY . .
 
-# Run the server via stdio
-CMD ["python", "-u", "server.py"]
+RUN chmod +x start.sh
+
+# Run the server via start.sh (which uses socat to bind to 0.0.0.0:8080)
+CMD ["./start.sh"]

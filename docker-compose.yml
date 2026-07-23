@@ -1,43 +1,59 @@
 version: '3.8'
-
 services:
   pomoshnik:
     image: openclaw/openclaw:latest
     container_name: pomoshnik_openclaw
-    command: ["node", "openclaw.mjs", "gateway", "run", "--allow-unconfigured"]
-    restart: always
+    command:
+    - node
+    - openclaw.mjs
+    - gateway
+    - run
+    - --allow-unconfigured
+    restart: on-failure
     ports:
-      - "3001:3001"
+    - 3001:3001
     volumes:
-      - ./openclaw_data:/app/data
-      - ./openclaw/SOUL.md:/app/SOUL.md
-      - ./openclaw/.mcp.json:/app/.mcp.json
+    - ./openclaw_data:/app/data
+    - ./openclaw/SOUL.md:/app/SOUL.md
+    - ./openclaw/.mcp.json:/app/.mcp.json
     environment:
-      - OPENCLAW_GATEWAY_TOKEN=${TELEGRAM_BOT_TOKEN} # For simplicity, using TG token or a custom one
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - GATEWAY_MODE=local
+    - OPENCLAW_CONFIG_PATH=/app/data/openclaw.json
+    - OPENCLAW_GATEWAY_TOKEN=${TELEGRAM_BOT_TOKEN}
+    - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    - GATEWAY_MODE=local
+    - OPENCLAW_HOME=/app/data
     deploy:
       resources:
         limits:
-          memory: 600M
-          cpus: '0.6'
+          memory: 3G
+          cpus: '1.2'
     depends_on:
-      - mcp-backend
-
+    - mcp-backend
   mcp-backend:
-    build: 
+    build:
       context: ./python-mcp
       dockerfile: Dockerfile
     container_name: pomoshnik_mcp_backend
     restart: always
+    stdin_open: true
+    tty: true
+    volumes:
+    - ./python-mcp:/app
+    - ./openclaw_data:/openclaw_data:ro
     env_file:
-      - .env
+    - .env
+    environment:
+    - FASTMCP_SERVER_HOST=0.0.0.0
+    - FASTMCP_SERVER_PORT=8000
+    - UVICORN_HOST=0.0.0.0
+    - UVICORN_PORT=8000
+    - HOST=0.0.0.0
+    - PORT=8000
     deploy:
       resources:
         limits:
-          memory: 400M
-          cpus: '0.4'
-
+          memory: 2G
+          cpus: '0.8'
 volumes:
-  openclaw_data:
+  openclaw_data: null

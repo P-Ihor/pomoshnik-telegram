@@ -1,9 +1,8 @@
 {
   "mcpServers": {
     "pomoshnik-tools": {
-      "command": "python",
-      "args": ["/app/server.py"],
-      "env": {}
+      "type": "http",
+      "url": "http://mcp-backend:8000/mcp"
     }
   }
 }
