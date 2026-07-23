@@ -30,6 +30,11 @@ services:
           cpus: '1.2'
     depends_on:
     - mcp-backend
+    logging: &id001
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
   mcp-backend:
     build:
       context: ./python-mcp
@@ -55,5 +60,6 @@ services:
         limits:
           memory: 2G
           cpus: '0.8'
+    logging: *id001
 volumes:
   openclaw_data: null
